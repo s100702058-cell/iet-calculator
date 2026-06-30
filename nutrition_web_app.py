@@ -31,8 +31,8 @@ else:
 
 st.sidebar.markdown("---")
 st.sidebar.header("⚖️ 第二步：三大營養素比例分配")
-p_ratio = st.sidebar.slider("蛋白質比例 (Protein %):", 10, 35, 20, step=5)
-f_ratio = st.sidebar.slider("脂肪比例 (Lipid %):", 15, 40, 30, step=5)
+p_ratio = st.sidebar.slider("蛋白質比例 (Protein %):", 10, 35, 20, step=1)
+f_ratio = st.sidebar.slider("脂肪比例 (Lipid %):", 15, 40, 30, step=1)
 c_ratio = 100 - p_ratio - f_ratio
 
 st.sidebar.info(f"當前配對比例：\n- 醣類 (CHO): {c_ratio}%\n- 蛋白質 (PRO): {p_ratio}%\n- 脂肪 (FAT): {f_ratio}%")
