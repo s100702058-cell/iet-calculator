@@ -1,22 +1,47 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="精準營養配對模組-專業重症版", page_icon="📊", layout="wide")
+st.set_page_config(page_title="精準營養配對模組-CNOS專業版", page_icon="📊", layout="wide")
 
-st.title("📊 臨床重症、透析 (HD/CAPD) 與台灣在地團膳整合配對神器")
-st.write("本模組已全面導入 血液透析(HD)、腹膜透析(CAPD)、糖尿病腎病變(DN)、台灣季節時蔬成本矩陣與 HACCP 關鍵管制點(CCP)！")
+st.title("📊 臨床重症、透析與台灣在地團膳整合配對平台")
+st.write("本模組已全面導入 NCP 生化評估矩陣、未透析 CKD 照護、HD/CAPD 雙流運算與台灣季節時蔬成本管制點！")
 
 st.markdown("---")
 
-# ==================== 疾病與重症核心資料庫 ====================
+# ==================== 疾病、重症與生化指標核心資料庫 ====================
 DISEASE_DB = {
-    "一般健康成人 (General Adult)": {"kcal_min": 25, "kcal_max": 30, "pro_min": 0.8, "pro_max": 1.0, "notes": "維持一般均衡飲食，定錨基本三大營養素平衡。"},
-    "糖尿病腎病變 (Diabetic Nephropathy, DN)": {"kcal_min": 25, "kcal_max": 30, "pro_min": 0.8, "pro_max": 0.8, "notes": "控糖限蛋極致！蛋白質定錨 0.8 g/kg 以延緩腎功能惡化。醣類必須精準均分，嚴禁精製糖，兼顧血糖與腎絲球壓力。"},
-    "慢性腎臟病-血液透析階段 (HD)": {"kcal_min": 30, "kcal_max": 35, "pro_min": 1.2, "pro_max": 1.4, "notes": "每週三次透析流失大量胺基酸！蛋白質大幅反轉補償至 1.2-1.4 g/kg。每餐需優質蛋白，嚴格限制鈉、鉀、磷與『水分攝取』。"},
-    "慢性腎臟病-腹膜透析階段 (CAPD)": {"kcal_min": 30, "kcal_max": 35, "pro_min": 1.2, "pro_max": 1.5, "notes": "天天持續流失大分子蛋白質！需求拉高至 1.2-1.5 g/kg。⚠️注意：因腹膜會吸收透析液中的葡萄糖（約100-300 kcal/日），食物熱量預算已自動調整。"},
-    "ICU 重症加護-急性期 (Critical Care-Acute)": {"kcal_min": 20, "kcal_max": 25, "pro_min": 1.2, "pro_max": 1.5, "notes": "高發炎高消耗！給予高蛋白對抗肌肉分解。初期熱量切記不可給太高，嚴防致命的『再餵食症候群 (Refeeding Syndrome)』！"},
-    "ERAS 術後加速康復程 (ERAS Protocol)": {"kcal_min": 25, "kcal_max": 30, "pro_min": 1.2, "pro_max": 1.5, "notes": "強調術後早期進食。若為腸胃道手術，初期必須嚴格配合低渣或無渣飲食，減少腸道工作量。"},
-    "高血脂症 (Hyperlipidemia)": {"kcal_min": 25, "kcal_max": 30, "pro_min": 0.8, "pro_max": 1.2, "notes": "降低飽和脂肪與反式脂肪，多選單元不飽和脂肪（橄欖油），膳食纖維干預目標建議拉高至 50g 以上以加速膽酸排泄。"}
+    "一般健康成人 (General Adult)": {
+        "kcal_min": 25, "kcal_max": 30, "pro_min": 0.8, "pro_max": 1.0, "notes": "維持一般平衡。監測指標：Albumin, FPG, TG, TC。",
+        "lab_notes": "📌 常規生化指標：維持基礎代謝與微量元素平衡即可。"
+    },
+    "慢性腎臟病-未透析 (CKD)": {
+        "kcal_min": 30, "kcal_max": 35, "pro_min": 0.6, "pro_max": 0.8, "notes": "嚴格限蛋！蛋白質限制在 0.6-0.8 g/kg 以延緩腎衰竭。熱量需給足。監測指標：BUN, Cr, eGFR, K, P。",
+        "lab_notes": "🚨 關鍵生化指標：密切監測血清鉀與磷！若 eGFR 降至中重度，蔬菜必須切後充分汆燙 3-5 分鐘以阻斷高血鉀心臟風險。"
+    },
+    "糖尿病腎病變 (Diabetic Nephropathy, DN)": {
+        "kcal_min": 25, "kcal_max": 30, "pro_min": 0.8, "pro_max": 0.8, "notes": "控糖限蛋極致！蛋白質定錨 0.8 g/kg 延緩腎絲球硬化。醣類必須精準均分。監測指標：HbA1c, FPG, UACR, eGFR。",
+        "lab_notes": "🚨 關鍵生化指標：注意 UACR 微量白蛋白尿！若開始出現漏水警訊，需嚴格限制高飽和脂肪肉品與精製糖，防範血管內皮二次高壓受損。"
+    },
+    "慢性腎臟病-血液透析階段 (HD)": {
+        "kcal_min": 30, "kcal_max": 35, "pro_min": 1.2, "pro_max": 1.4, "notes": "高補償優質蛋白！透析流失大量胺基酸，蛋白質大幅拉高至 1.2-1.4 g/kg。監測指標：iPTH, K, P, Ca, Albumin, Hb。",
+        "lab_notes": "🚨 關鍵生化指標：嚴控兩次透析間水份（體重增加<5%）。血磷過高易引發血管鈣化與骨病變，餐中需確實搭配磷結合劑。"
+    },
+    "慢性腎臟病-腹膜透析階段 (CAPD)": {
+        "kcal_min": 30, "kcal_max": 35, "pro_min": 1.2, "pro_max": 1.5, "notes": "持續性白蛋白流失補償！需求拉高至 1.2-1.5 g/kg。⚠️已自動扣除腹膜吸收之葡萄糖熱量 (約200 kcal/日)。監測指標：Albumin, TG, TC, K, P。",
+        "lab_notes": "🚨 關鍵生化指標：腹膜每日流失 5-15g 蛋白質，極易誘發嚴重 PEM（蛋白質能量營養不良），且常伴隨高脂血症，需搭配高纖維飲食。"
+    },
+    "ICU 重症加護-急性期 (Critical Care-Acute)": {
+        "kcal_min": 20, "kcal_max": 25, "pro_min": 1.2, "pro_max": 1.5, "notes": "急性代謝應激型！高蛋白對抗肌肉分解。熱量初期限制在 20-25 kcal/kg，嚴防再餵食症候群！監測指標：CRP, Prealbumin, Glucose, Lactate。",
+        "lab_notes": "🚨 關鍵生化指標：CRP 飆高且 Albumin 急跌屬負性急性期反應，絕非單純缺營養。血磷若暴跌 (<2.0 mg/dL) 預示 Refeeding Risk，需立刻暫緩熱量追擊！"
+    },
+    "ERAS 術後加速康復程 (ERAS Protocol)": {
+        "kcal_min": 25, "kcal_max": 30, "pro_min": 1.2, "pro_max": 1.5, "notes": "減少生理應激。若為腸胃道手術，初期配合低渣或無渣飲食。監測指標：Pre-op Albumin, Post-op CRP, Glucose, Fluid Balance。",
+        "lab_notes": "🚨 關鍵生化指標：術前白蛋白若 <3.0 g/dL 預示傷口癒合不良。初期菜單必須強制鎖定『無乳品/無渣』，避免酪蛋白凝乳在腸道下段留下包袱。"
+    },
+    "高血脂症 (Hyperlipidemia)": {
+        "kcal_min": 25, "kcal_max": 30, "pro_min": 0.8, "pro_max": 1.2, "notes": "脂質調配型。降低飽和脂肪，膳食纖維干預目標拉高至 50g 以上以加速膽酸排泄。監測指標：LDL-C, TG, TC, HDL-C。",
+        "lab_notes": "🚨 關鍵生化指標：以調降 LDL-C 為核心干預靶點。總脂肪不是越低越好，重點是脂肪種類（單元不飽和 MUFA 與 omega-3 優先）。"
+    }
 }
 
 # ==================== 台灣在地四季時蔬與成本資料庫 ====================
@@ -39,7 +64,7 @@ VEG_TAIWAN_DB = {
 st.sidebar.header("📋 第一步：NCP 臨床情境定錨")
 weight = st.sidebar.number_input("個案體重 (kg):", min_value=30.0, max_value=200.0, value=60.0, step=0.5)
 
-selected_disease = st.sidebar.selectbox("選擇臨床情境/目標疾病:", list(DISEASE_DB.keys()))
+selected_disease = st.sidebar.selectbox("請選擇臨床情境/目標疾病:", list(DISEASE_DB.keys()))
 disease_info = DISEASE_DB[selected_disease]
 
 residue_type = st.sidebar.radio("腸道渣質限制:", ["常規一般飲食", "低渣飲食 (低纖維/限制乳品)", "無渣飲食 (腸道術後/完全清空/嚴禁乳品)"])
@@ -70,7 +95,7 @@ pro_g_kg = st.sidebar.slider("每日每公斤蛋白質 (g/kg):", 0.5, 2.5, float
 
 raw_tdee = weight * kcal_kg
 
-# ⚠️ 臨床特殊邏輯：如果是 CAPD 腹膜透析，會從透析液吸收熱量，天然食物需扣除 200 kcal 避免高血糖
+# ⚠️ 臨床特殊代數扣除：CAPD 腹膜透析會吸收透析液葡萄糖熱量，食物需扣除 200 kcal
 if "CAPD" in selected_disease:
     raw_tdee = max(0.0, raw_tdee - 200.0)
 
@@ -110,7 +135,6 @@ elif "脫脂" in milk_type:
 else:
     milk_p, milk_f, milk_c, milk_servings = 0.0, 0.0, 0.0, 0.0
 
-# 🔒 臨床極端解鎖：肉類分型新增「不吃肉類/無肉品」選項
 meat_type = st.sidebar.selectbox("肉類分級選擇:", ["中脂肉類 (P:7g, F:5g)", "低脂肉類 (P:7g, F:3g)", "高脂肉類 (P:7g, F:10g)", "不吃肉類/無肉品 (P:0g, F:0g)"])
 
 if "中脂" in meat_type:
@@ -163,34 +187,32 @@ fat_servings = max(0.0, rem_fat / 5)
 
 # ==================== UI Output Dashboard ====================
 st.subheader(f"🩺 當前臨床情境診斷：{selected_disease}")
-st.info(f"💡 **臨床核心介入指引**：{disease_info['notes']}\n\n⚠️ **當前腸道渣質狀態**：{residue_type}")
+st.info(f"💡 **臨床介入核心指引**：{disease_info['notes']}\n\n📢 **生化評估導航提示**：{disease_info['lab_notes']}")
 
 col1, col2, col3, col4 = st.columns(4)
-# ⚠️ 特殊提示：如果為 CAPD，展示扣除透析液葡萄糖後的天然食物熱量需求
 if "CAPD" in selected_disease:
-    col1.metric("📊 淨天然食物熱量需求", f"{tdee:.0f} kcal", "已扣除腹膜透析液 200 kcal")
+    col1.metric("📊 淨天然食物熱量需求", f"{tdee:.0f} kcal", "已扣除葡萄糖吸收量 200 kcal")
 else:
     col1.metric("📊 淨天然食物熱量需求", f"{tdee:.0f} kcal")
 col2.metric("🍚 淨醣類目標克數", f"{target_cho_g:.1f} g ({cho_ratio:.0f}%)")
 col3.metric("🍗 淨蛋白質目標克數", f"{target_pro_g:.1f} g")
-col4.metric("🌾 膳食纖維干預目標", f"{target_fiber} g/日")
+col4.metric("🌾 膳食纖維干舉目標", f"{target_fiber} g/日")
 
 st.markdown("### 🍽️ 淨天然食物：六大類食物每日精準總份數")
-grain_note = "禁止任何糙米麩皮，改用白米飯、冬粉或西谷米！" if "一般" not in residue_type else "一份等於生重20-30g，如1/4碗飯。若是糖腎與CKD限蛋白，多選用粉飴或冬粉！"
-veg_note = "無渣飲食已將蔬菜降為0份。" if residue_type == "無渣飲食 (腸道術後/完全清空/嚴禁乳品)" else "一份等於生重100g。透析、糖腎個案切記配合右側 HACCP 進行汆燙去鉀！"
-fruit_note = "無渣飲食已將水果降為0份。" if residue_type == "無渣飲食 (腸道術後/完全清空/嚴禁乳品)" else "一份約100g。糖腎、HD、CAPD必須精確控管在2份以內，避開高鉀高糖地雷。"
+grain_note = "禁止糙米，改用白米飯、冬粉或西谷米！" if "一般" not in residue_type else "一份等於生重20-30g，如1/4碗飯。若是CKD或糖腎限蛋白，多利用粉飴與冬粉！"
+veg_note = "無渣飲食已將蔬菜降為0份。" if residue_type == "無渣飲食 (腸道術後/完全清空/嚴禁乳品)" else "一份生重100g。限鉀個案切記配合右側 HACCP 進行切後汆燙去鉀！"
+fruit_note = "無渣飲食已將水果降為0份。" if residue_type == "無渣飲食 (腸道術後/完全清空/嚴禁乳品)" else "一份約100g。糖腎、CKD、HD、CAPD必須控管在2份內並避開高鉀高糖地雷。"
 milk_note = "已強制關閉乳品類，消除酪蛋白凝乳殘渣包袱！" if milk_servings == 0 else f"1份等於240ml。當前選用：{milk_type}"
 
 food_groups_data = {
     "六大類食物名稱": ["全穀雜糧類", "豆魚蛋肉類", "乳品類", "蔬菜類", "水果類", "油脂與堅果種子類"],
     "每日精準總份數": [f"{grain_servings:.1f} 份", f"{meat_servings:.1f} 份", f"{milk_servings:.1f} 份", f"{veg_servings:.1f} 份", f"{fruit_servings:.1f} 份", f"{fat_servings:.1f} 份"],
-    "臨床生重與品項精確指引": [grain_note, f"搭配目前設定，1份相當於：{meat_ref}。低渣/無渣/CAPD腹膜炎期嚴禁油炸與帶筋老肉！", milk_note, veg_note, fruit_note, f"約 {fat_servings*5:.1f} 克烹調油。低渣/無渣飲食者嚴禁整粒堅果，避免高纖殘渣摩擦腸壁！"]
+    "臨床生重與品項精確指引": [grain_note, f"搭配目前設定，1份相當於：{meat_ref}。低渣/無渣個案嚴禁油炸與帶筋老肉！", milk_note, veg_note, fruit_note, f"約 {fat_servings*5:.1f} 克烹調油。低渣/無渣飲食者嚴禁整粒堅果，避免顆粒摩擦腸壁！"]
 }
 st.dataframe(pd.DataFrame(food_groups_data), use_container_width=True)
 
 # 餐次分配表格
 st.markdown("### ⏰ 每餐次六大類食物份數全自動配對表")
-st.write(f"當前分配模式：**{meal_mode}**（表格內數字為各餐建議分配『份數』）")
 meal_rows = []
 for m_name, m_pct in meals.items():
     meal_rows.append({
@@ -220,4 +242,4 @@ for veg in season_veg_data:
     })
 st.dataframe(pd.DataFrame(veg_rows), use_container_width=True)
 
-st.success("🎉 整合運算成功！本頁已完美嵌合 HD/CAPD 的水份與熱量公式，並將台灣團膳備料端的去鉀 CCP 管制完全具體化！")
+st.success("🎉 整合運算成功！本專案已完全覆蓋未透析 CKD 照護邏輯與多維度臨床生化導航！")
